@@ -9,7 +9,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/payments")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "${FRONTEND_URL:http://localhost:5173}")
 public class PaymentController {
     private final PaymentRecordRepository payments;
     public PaymentController(PaymentRecordRepository payments){this.payments=payments;}

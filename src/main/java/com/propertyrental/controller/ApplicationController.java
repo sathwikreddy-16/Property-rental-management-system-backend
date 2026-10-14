@@ -12,7 +12,11 @@ import java.util.Set;
 
 @RestController
 @RequestMapping("/api/applications")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = @CrossOrigin(origins = {
+    "http://localhost:5173",
+    "https://property-rental-management-system-frontend-n1pqky9md.vercel.app",
+    
+})
 public class ApplicationController {
     private final RentalApplicationRepository applications;
     private final PropertyRepository properties;

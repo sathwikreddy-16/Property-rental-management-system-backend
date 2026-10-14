@@ -11,10 +11,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/properties")
-@CrossOrigin(origins = "${FRONTEND_URL:http://localhost:5173}")
 public class PropertyController {
     private final PropertyRepository repository;
-    public PropertyController(PropertyRepository repository){this.repository=repository;}
+    private final AuthController auth;
+    public PropertyController(PropertyRepository repository,AuthController auth){this.repository=repository;this.auth=auth;}
 
     @GetMapping public List<Property> all(@RequestParam(required=false) String search,
       @RequestParam(required=false) String city, @RequestParam(required=false) String type,
@@ -24,8 +24,9 @@ public class PropertyController {
     @GetMapping("/{id}") public Property one(@PathVariable Long id) {
         return repository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Property not found"));
     }
-    @PostMapping public Property create(@Valid @RequestBody Property property){ property.setId(null); return repository.save(property); }
-    @PutMapping("/{id}") public Property update(@PathVariable Long id,@Valid @RequestBody Property input){
+    @PostMapping public Property create(@RequestHeader("Authorization") String token,@Valid @RequestBody Property property){ auth.requireRole(token,"landlord","admin"); property.setId(null); return repository.save(property); }
+    @PutMapping("/{id}") public Property update(@RequestHeader("Authorization") String token,@PathVariable Long id,@Valid @RequestBody Property input){
+        auth.requireRole(token,"landlord","admin");
         Property p=repository.findById(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Property not found"));
         p.setTitle(input.getTitle()); p.setLocation(input.getLocation()); p.setCity(input.getCity());
         p.setPropertyType(input.getPropertyType()); p.setMonthlyRent(input.getMonthlyRent());
@@ -33,9 +34,11 @@ public class PropertyController {
         p.setImageUrl(input.getImageUrl()); p.setAvailable(input.isAvailable()); p.setOwnerName(input.getOwnerName());
         return repository.save(p);
     }
-    @DeleteMapping("/{id}") @ResponseStatus(HttpStatus.NO_CONTENT) public void delete(@PathVariable Long id){
+    @DeleteMapping("/{id}") @ResponseStatus(HttpStatus.NO_CONTENT) public void delete(@RequestHeader("Authorization") String token,@PathVariable Long id){
+        auth.requireRole(token,"landlord","admin");
         if(!repository.existsById(id)) throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Property not found");
         repository.deleteById(id);
     }
     private String blankToNull(String s){return s==null||s.isBlank()?null:s.trim();}
 }
+

@@ -7,13 +7,15 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/dashboard")
-@CrossOrigin(origins = "${FRONTEND_URL:http://localhost:5173}")
 public class DashboardController {
     private final PropertyRepository properties;
     private final RentalApplicationRepository applications;
-    public DashboardController(PropertyRepository p,RentalApplicationRepository a){properties=p;applications=a;}
-    @GetMapping("/stats") public Map<String,Long> stats(){
+    private final AuthController auth;
+    public DashboardController(PropertyRepository p,RentalApplicationRepository a,AuthController auth){properties=p;applications=a;this.auth=auth;}
+    @GetMapping("/stats") public Map<String,Long> stats(@RequestHeader("Authorization") String token){
+        auth.requireRole(token,"landlord","admin");
         return Map.of("totalProperties",properties.count(),"availableProperties",properties.countByAvailableTrue(),
           "totalApplications",applications.count(),"pendingApplications",applications.countByStatus("PENDING"));
     }
 }
+

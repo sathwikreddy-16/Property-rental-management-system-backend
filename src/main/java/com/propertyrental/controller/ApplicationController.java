@@ -12,24 +12,23 @@ import java.util.Set;
 
 @RestController
 @RequestMapping("/api/applications")
-@CrossOrigin(origins = @CrossOrigin(origins = {
-    "http://localhost:5173",
-    "https://property-rental-management-system-frontend-n1pqky9md.vercel.app",
-    
-})
 public class ApplicationController {
     private final RentalApplicationRepository applications;
     private final PropertyRepository properties;
-    public ApplicationController(RentalApplicationRepository a, PropertyRepository p){applications=a;properties=p;}
-    @GetMapping public List<RentalApplication> all(){return applications.findAll();}
-    @PostMapping public RentalApplication apply(@Valid @RequestBody RentalApplication app){
+    private final AuthController auth;
+    public ApplicationController(RentalApplicationRepository a, PropertyRepository p,AuthController auth){applications=a;properties=p;this.auth=auth;}
+    @GetMapping public List<RentalApplication> all(@RequestHeader("Authorization") String token){auth.requireRole(token,"landlord","admin");return applications.findAll();}
+    @PostMapping public RentalApplication apply(@RequestHeader("Authorization") String token,@Valid @RequestBody RentalApplication app){
+        auth.requireRole(token,"tenant");
         if(!properties.existsById(app.getPropertyId())) throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Property not found");
         app.setId(null); app.setStatus("PENDING"); return applications.save(app);
     }
-    @PatchMapping("/{id}/status") public RentalApplication status(@PathVariable Long id,@RequestParam String status){
-        if(!Set.of("PENDING","APPROVED","REJECTED","CANCELLED").contains(status.toUpperCase()))
+    @PatchMapping("/{id}/status") public RentalApplication status(@RequestHeader("Authorization") String token,@PathVariable Long id,@RequestParam String status){
+        auth.requireRole(token,"landlord","admin");
+        if(!Set.of("PENDING","CHECKING","APPROVED","REJECTED","CANCELLED").contains(status.toUpperCase()))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Unsupported status");
         RentalApplication a=applications.findById(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Application not found"));
         a.setStatus(status.toUpperCase()); return applications.save(a);
     }
 }
+
